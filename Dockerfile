@@ -64,7 +64,7 @@ RUN wget -q http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/liftOver -O /u
 RUN mkdir -p /workspace /references
 
 # Copy liftover script (simple version only)
-COPY codes/archeive/liftover_sumstats_simple.py /usr/local/bin/
+COPY codes/liftover_sumstats_simple.py /usr/local/bin/
 COPY liftover /usr/local/bin/
 RUN chmod +x /usr/local/bin/liftover_sumstats_simple.py /usr/local/bin/liftover
 
