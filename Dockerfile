@@ -58,13 +58,12 @@ RUN mkdir -p /workspace /references
 
 # Copy liftover script (simple version only)
 COPY codes/liftover_sumstats_simple.py /usr/local/bin/
-COPY liftover /usr/local/bin/
-RUN chmod +x /usr/local/bin/liftover_sumstats_simple.py /usr/local/bin/liftover
+RUN chmod +x /usr/local/bin/liftover_sumstats_simple.py
 
 WORKDIR /workspace
 
-# Set the entrypoint to our wrapper script
-ENTRYPOINT ["/usr/local/bin/liftover"]
+# Set the entrypoint to the Python script directly
+ENTRYPOINT ["python3", "/usr/local/bin/liftover_sumstats_simple.py"]
 
 # Verify installation
 RUN python3 --version && bcftools --version && liftOver 2>&1 | head -1
