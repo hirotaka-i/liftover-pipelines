@@ -16,13 +16,13 @@ A minimal Docker-based tool to convert GWAS summary statistics between genome bu
 
 ```bash
 # Pull the pre-built image
-docker pull ghcr.io/hirotaka-i/liftover_sumstats:latest
+docker pull ghcr.io/hirotaka-i/liftover-pipelines:latest
 
 # Run with your data
 docker run --rm \
   -v /path/to/your/data:/data:rw \
   -v /path/to/references:/refs:rw \
-  ghcr.io/hirotaka-i/liftover_sumstats:latest \
+  ghcr.io/hirotaka-i/liftover-pipelines:latest \
   --input /data/sumstats_hg19.txt \
   --output /data/sumstats_hg38.txt \
   --unmatched /data/unmatched.txt \
@@ -38,16 +38,7 @@ docker run --rm \
   --chain-file /refs/hg19ToHg38.over.chain.gz
 ```
 
-### Option 2: Build Locally
-
-```bash
-# Clone and build
-git clone https://github.com/hirotaka-i/liftover_sumstats.git
-cd liftover_sumstats
-docker build -t liftover-sumstats:latest .
-```
-
-### Option 3: Using the wrapper script (Handles mounts automatically!)
+### Option 2: Using the wrapper script (Handles mounts automatically!)
 
 The `run_liftover.sh` script automatically detects Docker or Singularity and handles volume mounts:
 
@@ -68,11 +59,11 @@ The `run_liftover.sh` script automatically detects Docker or Singularity and han
   --chain-file /path/to/hg19ToHg38.over.chain.gz
 ```
 
-### Option 4: Singularity/Apptainer (For HPC clusters)
+### Option 3: Singularity/Apptainer (For HPC clusters)
 
 ```bash
 # Convert to Singularity SIF
-singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover_sumstats:latest
+singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover-pipelines:latest
 
 # Run with Singularity
 singularity exec \

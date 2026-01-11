@@ -7,7 +7,7 @@
 set -e
 
 # Default container image
-CONTAINER_IMAGE="ghcr.io/hirotaka-i/liftover_sumstats:latest"
+CONTAINER_IMAGE="ghcr.io/hirotaka-i/liftover-pipelines:latest"
 SINGULARITY_IMAGE=""
 
 # Detect container runtime

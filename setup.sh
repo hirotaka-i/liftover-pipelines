@@ -42,11 +42,11 @@ if [[ "$RUNTIME" == "docker" ]]; then
         docker build -t liftover-sumstats:latest .
     else
         echo "Pulling from GitHub Container Registry..."
-        docker pull ghcr.io/hirotaka-i/liftover_sumstats:latest
+        docker pull ghcr.io/hirotaka-i/liftover-pipelines:latest
     fi
 else
     echo "For Singularity/Apptainer, you can:"
-    echo "1. Pull from GitHub: singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover_sumstats:latest"
+    echo "1. Pull from GitHub: singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover-pipelines:latest"
     echo "2. Or build from local Docker: singularity build liftover-sumstats.sif docker-daemon://liftover-sumstats:latest"
 fi
 

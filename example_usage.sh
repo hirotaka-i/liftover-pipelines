@@ -31,7 +31,7 @@ docker run --rm \
   -v $(pwd)/example:/example:rw \
   -v $(pwd)/output:/output:rw \
   -v ${REFERENCE_DIR}:${REFERENCE_DIR}:ro \
-  liftover-sumstats:latest \
+  ghcr.io/hirotaka-i/liftover-pipelines:latest \
   --input /example/sumstats_hg19.txt \
   --output /output/sumstats_hg38.txt \
   --unmatched /output/unmatched.txt \
