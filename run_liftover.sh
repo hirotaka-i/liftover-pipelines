@@ -106,7 +106,7 @@ done
 # Build the container command based on runtime
 if [[ "$RUNTIME" == "docker" ]]; then
     # Build Docker command with volume mounts
-    DOCKER_CMD="docker run --rm"
+    DOCKER_CMD="docker run --rm --platform linux/amd64"
     
     for mount_dir in "${MOUNT_DIRS[@]}"; do
         DOCKER_CMD="$DOCKER_CMD -v ${mount_dir}:${mount_dir}:rw"

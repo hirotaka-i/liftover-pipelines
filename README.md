@@ -15,11 +15,11 @@ A minimal Docker-based tool to convert GWAS summary statistics between genome bu
 ### Option 1: Pull from GitHub Container Registry (Easiest!)
 
 ```bash
-# Pull the pre-built image
-docker pull ghcr.io/hirotaka-i/liftover-pipelines:latest
+# Pull the pre-built image (works on Mac with Rosetta 2)
+docker pull --platform linux/amd64 ghcr.io/hirotaka-i/liftover-pipelines:latest
 
 # Run with your data
-docker run --rm \
+docker run --rm --platform linux/amd64 \
   -v /path/to/your/data:/data:rw \
   -v /path/to/references:/refs:rw \
   ghcr.io/hirotaka-i/liftover-pipelines:latest \
@@ -203,7 +203,8 @@ This tool uses:
 
 ### File not found errors with Docker
 Make sure:
-1. All file paths inside the container match your volume mounts
+### Slow on Mac (Apple Silicon)
+The image runs via Rosetta 2 emulation on Apple Silicon Macs, which should be fine for most use cases. The `--platform linux/amd64` flag is required for compatibility.1. All file paths inside the container match your volume mounts
 2. You're using absolute paths for volume mounts
 3. Files have read permissions and output directories have write permissions
 
