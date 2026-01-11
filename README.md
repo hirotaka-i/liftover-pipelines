@@ -11,8 +11,12 @@ A minimal Docker-based tool to convert GWAS summary statistics between genome bu
 - Dockerized for easy setup and reproducibility
 
 ## Quick Start
+You need to moount the following folders into the container:
+* data folder: the folder containing your summary statistics file  
+* refs folder: the folder containing reference files (FASTA, chain files)
 
-### Option 1: Pull from GitHub Container Registry (Easiest!)
+
+### Option 1: Docker directly (No download needed!)
 
 ```bash
 # Pull the pre-built image (works on Mac with Rosetta 2)
@@ -21,7 +25,7 @@ docker pull --platform linux/amd64 ghcr.io/hirotaka-i/liftover-pipelines:latest
 # Run with your data
 docker run --rm --platform linux/amd64 \
   -v /path/to/your/data:/data:rw \
-  -v /path/to/references:/refs:rw \
+  -v /path/to/references:/refs:ro \
   ghcr.io/hirotaka-i/liftover-pipelines:latest \
   --input /data/sumstats_hg19.txt \
   --output /data/sumstats_hg38.txt \
@@ -38,30 +42,8 @@ docker run --rm --platform linux/amd64 \
   --chain-file /refs/hg19ToHg38.over.chain.gz
 ```
 
-### Option 2: Using the wrapper script (Works with Docker OR Singularity!)
 
-The `run_liftover.sh` script automatically detects Docker or Singularity/Apptainer and handles volume mounts:
-
-```bash
-./run_liftover.sh \
-  --input /path/to/sumstats_hg19.txt \
-  --output /path/to/sumstats_hg38.txt \
-  --unmatched /path/to/unmatched.txt \
-  --chr-col CHR \
-  --pos-col POS \
-  --ea-col A1 \
-  --ref-col A2 \
-  --effect-col Z \
-  --eaf-col A1_FREQ \
-  --add-chr-prefix \
-  --source-fasta /path/to/hg19.fa.gz \
-  --target-fasta /path/to/hg38.fa.gz \
-  --chain-file /path/to/hg19ToHg38.over.chain.gz
-```
-
-**Note:** This works on both local machines (Docker) and HPC clusters (Singularity). The script automatically uses whichever container runtime is available.
-
-### Option 3: Singularity/Apptainer (Manual method for HPC)
+### Option 2: Singularity/Apptainer (Manual method for HPC)
 
 If you prefer to use Singularity directly instead of the wrapper script:
 
@@ -72,7 +54,7 @@ singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover-pip
 # Run with Singularity
 singularity exec \
   -B /path/to/data:/data:rw \
-  -B /path/to/refs:/refs:rw \
+  -B /path/to/refs:/refs:ro \
   liftover-sumstats.sif \
   liftover \
   --input /data/sumstats_hg19.txt \
@@ -212,22 +194,19 @@ If you use this tool, please cite:
 
 This tool uses:
 - BCFtools (MIT/Expat License)
-- UCSC liftOver tool (free for academic use)
+- BCFtools/liftover pluging[MIT License]: 
+  - Genovese G., McCarroll S. et al. BCFtools/liftover: an accurate and comprehensive tool to convert genetic variants across genome assemblies. Bioinformatics 40, Issue 2 (2024). [PMID: 38261650] [DOI: 10.1093/bioinformatics/btae038]
 - Python pandas, numpy (BSD License)
 
-# MEMO
+---
 
-The assumption is that they are all forward strand. 
-They can flip strand while lifting over but
-1. first align to hg19 (no strand flip)
-2. if hg38 forward is the flip of hg19, then flip
+## Important Note on Strand Assumptions
 
-So flipped strand as input will be never fixed and create problematic output. 
+For the input, the assumption is that they are all forward stranded. The pipeline can flip strand while lifting over but it only happens the flipping between different genome builds. If the input file is not aligned to the forward strand of the source genome build, the output would contain a lot of misaligned variants.
 
 
-How normalization work
 ```
-if C T is the truth >
+# How normalization works if C T is the truth >
 REF_IN	ALT_IN	OPERATION	REF_OUT	ALT_OUT	Notes
 C	T	No change	C	T	REF matches FASTA
 C	A	No change	C	A	REF matches FASTA
@@ -242,8 +221,8 @@ T	G	Ref added	C	G	REF_IN replaced with C, ALT unchanged
 G	A	Ref added	C	A	REF_IN replaced with C, ALT unchanged
 G	T	Ref added	C	T	REF_IN replaced with C, ALT unchanged
 
-How bcftools liftover work
-REF_IN	ALT_IN	OPERATION	REF_OUT	ALT_OUT	Notes
+# How bcftools +liftover works
+# REF_IN	ALT_IN	OPERATION	REF_OUT	ALT_OUT	Notes
 C	T	No change	C	T	REF matches FASTA
 C	A	No change	C	A	REF matches FASTA
 C	G	No change	C	G	REF matches FASTA
