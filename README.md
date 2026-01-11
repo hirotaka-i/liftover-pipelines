@@ -56,7 +56,7 @@ singularity exec \
   -B /path/to/data:/data:rw \
   -B /path/to/refs:/refs:ro \
   liftover-sumstats.sif \
-  liftover \
+  python3 /usr/local/bin/liftover_sumstats_simple.py \
   --input /data/sumstats_hg19.txt \
   --output /data/sumstats_hg38.txt \
   --unmatched /data/unmatched.txt \
