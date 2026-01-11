@@ -1,0 +1,43 @@
+# Exclude test and example files
+examples/
+*.log
+
+# Exclude large reference files (mount at runtime)
+references/
+data/
+*.fa
+*.fa.gz
+*.fai
+*.chain.gz
+*.chain
+
+# Exclude git files
+.git/
+.gitignore
+
+# Exclude Docker files
+docker/
+docker-compose.yml
+.dockerignore
+
+# Exclude README and docs
+README.md
+
+# Exclude Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Exclude editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Exclude OS files
+.DS_Store
+Thumbs.db

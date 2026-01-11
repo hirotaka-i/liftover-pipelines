@@ -1,0 +1,44 @@
+# Data and reference files
+data/
+references/
+*.fa
+*.fa.gz
+*.fai
+*.chain
+*.chain.gz
+
+# Log files
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+._.DS_Store
+
+# Temporary files
+*.tmp
+temp/
+tmp/

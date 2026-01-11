@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  liftover:
+    build: .
+    image: liftover-sumstats:latest
+    volumes:
+      # Mount your data directory
+      - ./data:/workspace/data
+      # Mount reference genomes (download separately)
+      - ./references:/references
+    working_dir: /workspace
+    # Keep container running
+    stdin_open: true
+    tty: true
