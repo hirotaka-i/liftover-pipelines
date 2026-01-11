@@ -38,9 +38,9 @@ docker run --rm --platform linux/amd64 \
   --chain-file /refs/hg19ToHg38.over.chain.gz
 ```
 
-### Option 2: Using the wrapper script (Handles mounts automatically!)
+### Option 2: Using the wrapper script (Works with Docker OR Singularity!)
 
-The `run_liftover.sh` script automatically detects Docker or Singularity and handles volume mounts:
+The `run_liftover.sh` script automatically detects Docker or Singularity/Apptainer and handles volume mounts:
 
 ```bash
 ./run_liftover.sh \
@@ -59,7 +59,11 @@ The `run_liftover.sh` script automatically detects Docker or Singularity and han
   --chain-file /path/to/hg19ToHg38.over.chain.gz
 ```
 
-### Option 3: Singularity/Apptainer (For HPC clusters)
+**Note:** This works on both local machines (Docker) and HPC clusters (Singularity). The script automatically uses whichever container runtime is available.
+
+### Option 3: Singularity/Apptainer (Manual method for HPC)
+
+If you prefer to use Singularity directly instead of the wrapper script:
 
 ```bash
 # Convert to Singularity SIF
@@ -138,14 +142,6 @@ Your summary statistics file should be a tab or space-delimited text file with h
 CHR  POS       EA  REF  BETA      SE        P         EAF
 1    12345     A   G    0.123     0.045     0.001     0.35
 1    67890     C   T    -0.087    0.038     0.023     0.62
-```
-
-## Ouinput file should be a tab or space-separated file with a header. Example:
-
-```
-CHR  POS       A1  A2  Z         A1_FREQ
-1    1234567   A   G   2.543     0.234
-1    2345678   C   T   -1.234    0.456
 ...
 ```
 
@@ -155,16 +151,9 @@ Gzipped files (.txt.gz) are also supported.
 
 The tool produces:
 1. **Lifted file**: Summary statistics with updated coordinates in the target genome build
-2. **Unmatched file**: Variants that couldn't be lifted (no match in chain file or different alleles) Issue: Many unmatched variants
+2. **Unmatched file**: Variants that couldn't be lifted (no match in chain file or different alleles)
 
-- Check that your input coordinates match the source genome build
-- Verify that chromosome naming is consistent
-- Ensure your chain file matches your source→target conversion
-
-### Issue: Docker permission errors
-
-Make sure your data and references directories have proper permissions:
-Real-World Example
+## Real-World Example
 
 ```bash
 # Using the wrapper script with real paths
@@ -188,7 +177,32 @@ Real-World Example
 ### Chromosome naming mismatch
 If your source FASTA uses "chr1, chr2, ..." but your summary statistics use "1, 2, ...", add the `--add-chr-prefix` flag.
 
-###Citation
+### Many unmatched variants
+- Check that your input coordinates match the source genome build
+- Verify that chromosome naming is consistent
+- Ensure your chain file matches your source→target conversion
+
+### Docker permission errors
+Run with your user ID:
+```bash
+docker run --rm --platform linux/amd64 --user $(id -u):$(id -g) \
+  -v /path/to/data:/data:rw \
+  ghcr.io/hirotaka-i/liftover-pipelines:latest ...
+```
+
+### File not found errors
+Make sure:
+1. All file paths inside the container match your volume mounts
+2. You're using absolute paths for volume mounts
+3. Files have read permissions and output directories have write permissions
+
+### Slow on Mac (Apple Silicon)
+The image runs via Rosetta 2 emulation on Apple Silicon Macs, which should be fine for most use cases. The `--platform linux/amd64` flag is required for compatibility.
+
+### Out of memory
+For very large files, increase Docker's memory limit in Docker Desktop settings.
+
+## Citation
 
 If you use this tool, please cite:
 - BCFtools: Danecek P, et al. (2021) Twelve years of SAMtools and BCFtools. GigaScience, 10(2).
@@ -199,19 +213,9 @@ If you use this tool, please cite:
 This tool uses:
 - BCFtools (MIT/Expat License)
 - UCSC liftOver tool (free for academic use)
-- Python pandas, numpy (BSD License
+- Python pandas, numpy (BSD License)
 
-### File not found errors with Docker
-Make sure:
-### Slow on Mac (Apple Silicon)
-The image runs via Rosetta 2 emulation on Apple Silicon Macs, which should be fine for most use cases. The `--platform linux/amd64` flag is required for compatibility.1. All file paths inside the container match your volume mounts
-2. You're using absolute paths for volume mounts
-3. Files have read permissions and output directories have write permissions
-
-### Out of memory
-For very large files, increase Docker's memory limit in Docker Desktop setting
-```
-Flip mechanism
+# MEMO
 
 The assumption is that they are all forward strand. 
 They can flip strand while lifting over but
@@ -222,6 +226,7 @@ So flipped strand as input will be never fixed and create problematic output.
 
 
 How normalization work
+```
 if C T is the truth >
 REF_IN	ALT_IN	OPERATION	REF_OUT	ALT_OUT	Notes
 C	T	No change	C	T	REF matches FASTA
