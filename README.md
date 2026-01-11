@@ -6,76 +6,96 @@ A minimal Docker-based tool to convert GWAS summary statistics between genome bu
 
 - Convert summary statistics between genome builds using bcftools +liftover
 - Automatically flip effect sizes and allele frequencies when alleles swap
-- Two versions available:
-  - **Simple**: Direct liftover without pre-normalization
-  - **Standard**: With REF allele normalization before liftover
+- Standalone Docker/Singularity container for easy distribution
+- Simple direct liftover without pre-normalization
 - Dockerized for easy setup and reproducibility
 
 ## Quick Start
 
-For the fastest start, see [QUICKSTART.md](QUICKSTART.md).
-
-### Prerequisites
-
-- Docker installed on your system
-- Reference genome files (FASTA) for source and target builds
-- Chain file for coordinate conversion (e.g., hg19ToHg38.over.chain.gz)
-
-### 1. Build the Docker Image
+### Option 1: Pull from GitHub Container Registry (Easiest!)
 
 ```bash
-docker build -t liftover-sumstats .
-```
+# Pull the pre-built image
+docker pull ghcr.io/hirotaka-i/liftover_sumstats:latest
 
-### 2. Prepare Your Data
-
-Create directories for your data and reference files:
-
-```bash
-mkdir -p data references
-```
-
-### 3. Run Liftover
-
-#### Using Docker directly:
-
-```bash
+# Run with your data
 docker run --rm \
-  -v $(pwd)/data:/workspace/data \
-  -v $(pwd)/references:/references \
-  liftover-sumstats \
-  python3 /usr/local/bin/liftover_sumstats_simple.py \
-    --input /workspace/data/input.txt \
-    --output /workspace/data/output.hg38.txt \
-    --unmatched /workspace/data/output.unmatched.txt \
-    --chr-col CHR \
-    --pos-col POS \
-    --ea-col EA \
-    --ref-col REF \
-    --source-fasta /references/hg19.fa \
-    --target-fasta /references/hg38.fa \
-    --chain-file /references/hg19ToHg38.over.chain.gz \
-    --effect-col BETA \
-    --eaf-col EAF
-```
-
-#### Using the wrapper script (recommended):
-
-```bash
-./liftover_sumstats_wrapper_simple.sh \
-  -i data/input.txt \
-  -o data/output.hg38.txt \
-  -u data/output.unmatched.txt \
+  -v /path/to/your/data:/data:rw \
+  -v /path/to/references:/refs:rw \
+  ghcr.io/hirotaka-i/liftover_sumstats:latest \
+  --input /data/sumstats_hg19.txt \
+  --output /data/sumstats_hg38.txt \
+  --unmatched /data/unmatched.txt \
   --chr-col CHR \
   --pos-col POS \
-  --ea-col EA \
-  --ref-col REF \
-  --source-fasta references/hg19.fa \
-  --target-fasta references/hg38.fa \
-  --chain-file references/hg19ToHg38.over.chain.gz \
-  --effect-col BETA \
-  --eaf-col EAF
+  --ea-col A1 \
+  --ref-col A2 \
+  --effect-col Z \
+  --eaf-col A1_FREQ \
+  --add-chr-prefix \
+  --source-fasta /refs/hg19.fa.gz \
+  --target-fasta /refs/hg38.fa.gz \
+  --chain-file /refs/hg19ToHg38.over.chain.gz
 ```
+
+### Option 2: Build Locally
+
+```bash
+# Clone and build
+git clone https://github.com/hirotaka-i/liftover_sumstats.git
+cd liftover_sumstats
+docker build -t liftover-sumstats:latest .
+```
+
+### Option 3: Using the wrapper script (Handles mounts automatically!)
+
+The `run_liftover.sh` script automatically detects Docker or Singularity and handles volume mounts:
+
+```bash
+./run_liftover.sh \
+  --input /path/to/sumstats_hg19.txt \
+  --output /path/to/sumstats_hg38.txt \
+  --unmatched /path/to/unmatched.txt \
+  --chr-col CHR \
+  --pos-col POS \
+  --ea-col A1 \
+  --ref-col A2 \
+  --effect-col Z \
+  --eaf-col A1_FREQ \
+  --add-chr-prefix \
+  --source-fasta /path/to/hg19.fa.gz \
+  --target-fasta /path/to/hg38.fa.gz \
+  --chain-file /path/to/hg19ToHg38.over.chain.gz
+```
+
+### Option 4: Singularity/Apptainer (For HPC clusters)
+
+```bash
+# Convert to Singularity SIF
+singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover_sumstats:latest
+
+# Run with Singularity
+singularity exec \
+  -B /path/to/data:/data:rw \
+  -B /path/to/refs:/refs:rw \
+  liftover-sumstats.sif \
+  liftover \
+  --input /data/sumstats_hg19.txt \
+  --output /data/sumstats_hg38.txt \
+  --unmatched /data/unmatched.txt \
+  --chr-col CHR \
+  --pos-col POS \
+  --ea-col A1 \
+  --ref-col A2 \
+  --effect-col Z \
+  --eaf-col A1_FREQ \
+  --add-chr-prefix \
+  --source-fasta /refs/hg19.fa.gz \
+  --target-fasta /refs/hg38.fa.gz \
+  --chain-file /refs/hg19ToHg38.over.chain.gz
+```
+
+**Important:** When using Docker directly, all file paths inside the container must match your volume mount paths!
 
 ## Required Arguments
 
@@ -99,32 +119,24 @@ docker run --rm \
 
 ## Getting Reference Files
 
-### Reference Genomes
-
-Download from UCSC or other sources:
-
-```bash
-# hg19 (GRCh37)
-wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz
-gunzip hg19.fa.gz
-samtools faidx hg19.fa
-
-# hg38 (GRCh38)
-wget http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
-gunzip hg38.fa.gz
-samtools faidx hg38.fa
-```
+You'll need to download these reference files once and reuse them:
 
 ### Chain Files
-
-Download from UCSC:
-
 ```bash
 # hg19 to hg38
 wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz
 
 # hg38 to hg19
 wget http://hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/hg38ToHg19.over.chain.gz
+```
+
+### Reference Genomes
+```bash
+# hg19 (GRCh37) - can keep gzipped
+wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz
+
+# hg38 (GRCh38) - can keep gzipped
+wget http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
 ```
 
 ## Input File Format
@@ -137,37 +149,22 @@ CHR  POS       EA  REF  BETA      SE        P         EAF
 1    67890     C   T    -0.087    0.038     0.023     0.62
 ```
 
+## Ouinput file should be a tab or space-separated file with a header. Example:
+
+```
+CHR  POS       A1  A2  Z         A1_FREQ
+1    1234567   A   G   2.543     0.234
+1    2345678   C   T   -1.234    0.456
+...
+```
+
+Gzipped files (.txt.gz) are also supported.
+
 ## Output
 
 The tool produces:
-1. **Lifted file**: Summary statistics with updated coordinates
-2. **Unmatched file**: Variants that couldn't be lifted (no match in chain file or different alleles)
-
-## Project Structure
-
-```
-.
-├── Dockerfile                              # Minimal Docker image for liftover
-├── docker-compose.yml                      # Docker compose configuration
-├── README.md                               # This file
-├── liftover_sumstats.py                   # Standard version with normalization
-├── liftover_sumstats_simple.py            # Simple version without normalization
-├── liftover_sumstats_wrapper.sh           # Wrapper for standard version
-├── liftover_sumstats_wrapper_simple.sh    # Wrapper for simple version
-├── data/                                   # Your data files (create this)
-├── references/                             # Reference genomes (create this)
-├── examples/                               # Example/test files
-└── docker/                                 # Full pipeline Dockerfile
-    └── Dockerfile.ubuntu22
-```
-
-## Troubleshooting
-
-### Issue: Chromosome naming mismatch
-
-If your source FASTA uses "chr1, chr2, ..." but your summary statistics use "1, 2, ...", add the `--add-chr-prefix` flag.
-
-### Issue: Many unmatched variants
+1. **Lifted file**: Summary statistics with updated coordinates in the target genome build
+2. **Unmatched file**: Variants that couldn't be lifted (no match in chain file or different alleles) Issue: Many unmatched variants
 
 - Check that your input coordinates match the source genome build
 - Verify that chromosome naming is consistent
@@ -176,29 +173,51 @@ If your source FASTA uses "chr1, chr2, ..." but your summary statistics use "1, 
 ### Issue: Docker permission errors
 
 Make sure your data and references directories have proper permissions:
+Real-World Example
 
 ```bash
-chmod -R 755 data references
+# Using the wrapper script with real paths
+./run_liftover.sh \
+  --input $HOME/gwas_data/my_gwas_hg19.txt.gz \
+  --output $HOME/gwas_data/my_gwas_hg38.txt.gz \
+  --unmatched $HOME/gwas_data/my_gwas_unmatched.txt \
+  --chr-col CHR \
+  --pos-col BP \
+  --ea-col A1 \
+  --ref-col A2 \
+  --effect-col BETA \
+  --eaf-col FRQ \
+  --source-fasta $HOME/references/hg19.fa.gz \
+  --target-fasta $HOME/references/hg38.fa.gz \
+  --chain-file $HOME/references/hg19ToHg38.over.chain.gz
 ```
 
-## Examples
+## Troubleshooting
 
-See the `examples/` directory for sample input files and test cases.
+### Chromosome naming mismatch
+If your source FASTA uses "chr1, chr2, ..." but your summary statistics use "1, 2, ...", add the `--add-chr-prefix` flag.
+
+###Citation
+
+If you use this tool, please cite:
+- BCFtools: Danecek P, et al. (2021) Twelve years of SAMtools and BCFtools. GigaScience, 10(2).
+- Liftover plugin: Giulio Genovese (freeseek/score repository)
 
 ## License
 
 This tool uses:
 - BCFtools (MIT/Expat License)
 - UCSC liftOver tool (free for academic use)
-- Python pandas, numpy (BSD License)
+- Python pandas, numpy (BSD License
 
-## Citation
+### File not found errors with Docker
+Make sure:
+1. All file paths inside the container match your volume mounts
+2. You're using absolute paths for volume mounts
+3. Files have read permissions and output directories have write permissions
 
-If you use this tool, please cite:
-- BCFtools: Danecek P, et al. (2021) Twelve years of SAMtools and BCFtools. GigaScience, 10(2).
-- Liftover plugin: Giulio Genovese (freeseek/score repository)
-
-# MEMO
+### Out of memory
+For very large files, increase Docker's memory limit in Docker Desktop setting
 ```
 Flip mechanism
 

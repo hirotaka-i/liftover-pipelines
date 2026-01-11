@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Entrypoint script for liftover-sumstats tool
+# This wrapper makes the tool easy to use from inside the container
+#
+
+set -e
+
+# Execute the simple liftover script with all arguments
+exec python3 /usr/local/bin/liftover_sumstats_simple.py "$@"

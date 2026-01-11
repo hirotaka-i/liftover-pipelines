@@ -63,14 +63,15 @@ RUN wget -q http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/liftOver -O /u
 # Create directories for reference files
 RUN mkdir -p /workspace /references
 
-# Copy liftover scripts
-COPY liftover_sumstats.py /usr/local/bin/
-COPY liftover_sumstats_simple.py /usr/local/bin/
-RUN chmod +x /usr/local/bin/liftover_sumstats.py /usr/local/bin/liftover_sumstats_simple.py
+# Copy liftover script (simple version only)
+COPY codes/archeive/liftover_sumstats_simple.py /usr/local/bin/
+COPY liftover /usr/local/bin/
+RUN chmod +x /usr/local/bin/liftover_sumstats_simple.py /usr/local/bin/liftover
 
 WORKDIR /workspace
 
+# Set the entrypoint to our wrapper script
+ENTRYPOINT ["/usr/local/bin/liftover"]
+
 # Verify installation
 RUN python3 --version && bcftools --version && liftOver 2>&1 | head -1
-
-CMD ["/bin/bash"]
