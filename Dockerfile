@@ -53,13 +53,6 @@ RUN cd /tmp/bcftools-${BCFTOOLS_VERSION} && \
     make && make install && \
     rm -rf /tmp/bcftools-${BCFTOOLS_VERSION}
 
-# ============================================
-# UCSC liftOver tool
-# ============================================
-
-RUN wget -q http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/liftOver -O /usr/local/bin/liftOver && \
-    chmod +x /usr/local/bin/liftOver
-
 # Create directories for reference files
 RUN mkdir -p /workspace /references
 
