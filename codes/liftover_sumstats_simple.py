@@ -370,7 +370,7 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     non_ea_lifted_col = f'{non_ea_col}_lifted'
     df[ea_lifted_col] = ''
     df[non_ea_lifted_col] = ''
-    df['AMBIGUOUS'] = False
+    df['AMBIGUOUS'] = 0
     
     # Vectorized update using map operations
     # Create mask for lifted variants
@@ -393,7 +393,7 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     df.loc[lifted_mask, '_effect_flipped'] = df.loc[lifted_mask, '_variant_id'].map(lambda x: lifted_info[x]['effect_flipped']).astype(bool)
     
     # Determine AMBIGUOUS variants
-    # AMBIGUOUS if: 1) alleles changed (A1:A2 != A1_lifted:A2_lifted), or 2) palindromic (A/T or C/G)
+    # AMBIGUOUS: '1' if REF (non-EA) added/changed, '2' if palindromic variant, '0' otherwise
     def is_palindromic(a1, a2):
         a1_upper = str(a1).upper()
         a2_upper = str(a2).upper()
@@ -416,7 +416,13 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
         is_palindrome = is_palindromic(orig_a1, orig_a2)
         changed = alleles_changed(orig_a1, orig_a2, lift_a1, lift_a2)
         
-        df.at[idx, 'AMBIGUOUS'] = is_palindrome or changed
+        # Set AMBIGUOUS: 2 for palindromic, 1 for REF added/changed, 0 otherwise
+        if is_palindrome:
+            df.at[idx, 'AMBIGUOUS'] = 2
+        elif changed:
+            df.at[idx, 'AMBIGUOUS'] = 1
+        else:
+            df.at[idx, 'AMBIGUOUS'] = 0
     
     # Fix effect and frequency for effect_flipped variants (when alleles were swapped)
     flip_mask = lifted_mask & df['_effect_flipped']
@@ -458,7 +464,9 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     matched_count = lifted_mask.sum()
     strand_flipped_count = (df['STRAND_FLIP'] == True).sum()
     flipped_count = flip_mask.sum()
-    ambiguous_count = (df['AMBIGUOUS'] == True).sum()
+    ambiguous_ref_added = (df['AMBIGUOUS'] == 1).sum()
+    ambiguous_palindromic = (df['AMBIGUOUS'] == 2).sum()
+    ambiguous_count = ambiguous_ref_added + ambiguous_palindromic
     total_count = len(df)
     
     # Write outputs in chunks to reduce memory usage
@@ -499,7 +507,9 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     logging.info(f"  Successfully lifted: {matched_count}")
     logging.info(f"  Strand flipped: {strand_flipped_count}")
     logging.info(f"  Allele swapped: {flipped_count}")
-    logging.info(f"  Ambiguous (palindromic or alleles changed): {ambiguous_count}")
+    logging.info(f"  Ambiguous (REF added): {ambiguous_ref_added}")
+    logging.info(f"  Ambiguous (palindromic): {ambiguous_palindromic}")
+    logging.info(f"  Total ambiguous: {ambiguous_count}")
     logging.info(f"  Failed to lift: {total_count - matched_count}")
 
 

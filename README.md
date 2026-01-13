@@ -134,15 +134,21 @@ The columns in the input file will be preserved in the output file.
 
 The tool produces:
 1. **Lifted file**: Summary statistics with updated coordinates in the target genome build
+    - `${ea_col}_lifted`: Effect allele (alternative allele) in target build. `${effect_col}` and `${eaf_col}` are flipped if alleles swapped
+    - `${non_ea_col}_lifted`: Non-effect allele which is also a reference allele in target build
+    - `AMBIGUOUS` column: '1' if REF added, '2' if pallindromic variant, else '0'
 2. **Unmatched file**: Variants that couldn't be lifted (no match in chain file or different alleles)
 3. **Log file**: Summary of liftover statistics
 
 In the log file, please check the number in this line:
+
 ```
 bcftools stderr: Lines   total/swapped/reference added/rejected:	2200/989/0/0
 ```
-Reference added variants are not really safe to use (the third number which is 0 in this case). Please see the note at the end of this README about strand assumptions.)/
-IN the output, we have "AMBIGUOUS" column which indicated either pallindromic SNPs or variants with ref added.
+
+Reference added variants are not really safe to use (the third number which is 0 in this case). Please see the note at the end of this README about strand assumptions.)
+
+In the output, we have "AMBIGUOUS" column which indicated either variants with ref added ('1') or pallindromic variants ('2').
 
 ## Troubleshooting
 
