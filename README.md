@@ -21,13 +21,13 @@ You need to mount the following folders into the container:
 
 ```bash
 # Pull the pre-built image (works on Mac with Rosetta 2)
-docker pull --platform linux/amd64 ghcr.io/hirotaka-i/liftover-pipelines:latest
+docker pull --platform linux/amd64 ghcr.io/hirotaka-i/liftover-pipelines:1.0.2
 
 # Run with your data
 docker run --rm --platform linux/amd64 \
   -v /path/to/your/data:/data:rw \
   -v /path/to/references:/refs:ro \
-  ghcr.io/hirotaka-i/liftover-pipelines:latest \
+  ghcr.io/hirotaka-i/liftover-pipelines:1.0.2 \
   --input /data/sumstats_hg19.txt \
   --output /data/sumstats_hg19tohg38.txt \
   --chr-col CHR \
@@ -49,7 +49,7 @@ If you prefer to use Singularity directly instead of the wrapper script:
 
 ```bash
 # Convert to Singularity SIF
-singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover-pipelines:latest
+singularity build liftover-sumstats.sif docker://ghcr.io/hirotaka-i/liftover-pipelines:1.0.2
 
 # Run with Singularity
 singularity exec \
@@ -58,7 +58,7 @@ singularity exec \
   liftover-sumstats.sif \
   python3 /usr/local/bin/liftover_sumstats_simple.py \
   --input /data/sumstats_hg19.txt \
-  --output /data/sumstats_hg38.txt \
+  --output /data/sumstats_hg19tohg38.txt \
   --chr-col CHR \
   --pos-col POS \
   --ea-col A1 \
@@ -80,7 +80,7 @@ singularity exec \
 - `--chr-col`: Chromosome column name in your input file
 - `--pos-col`: Position column name
 - `--ea-col`: Effect allele column name
-- `--non-ea-col`: Reference allele column name
+- `--non-ea-col`: Non-effect allele column name
 - `--source-fasta`: Source genome reference FASTA file
 - `--target-fasta`: Target genome reference FASTA file
 - `--chain-file`: Chain file for liftover
@@ -159,7 +159,7 @@ Run with your user ID:
 ```bash
 docker run --rm --platform linux/amd64 --user $(id -u):$(id -g) \
   -v /path/to/data:/data:rw \
-  ghcr.io/hirotaka-i/liftover-pipelines:latest ...
+  ghcr.io/hirotaka-i/liftover-pipelines:1.0.2 ...
 ```
 
 ### File not found errors
