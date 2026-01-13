@@ -30,7 +30,7 @@ def write_file(filepath):
     return open(filepath, 'w')
 
 
-def sumstats_to_vcf(sumstats_file, vcf_file, chr_col, pos_col, ea_col, ref_col, 
+def sumstats_to_vcf(sumstats_file, vcf_file, chr_col, pos_col, ea_col, non_ea_col, 
                     add_chr_prefix=False, source_fasta=None):
     """
     Convert summary statistics to VCF format
@@ -41,7 +41,7 @@ def sumstats_to_vcf(sumstats_file, vcf_file, chr_col, pos_col, ea_col, ref_col,
         chr_col: Chromosome column name
         pos_col: Position column name
         ea_col: Effect allele column name
-        ref_col: Reference allele column name
+        non_ea_col: Non-effect allele column name
         add_chr_prefix: Whether to add 'chr' prefix to chromosome names
         source_fasta: Source reference fasta file (for contig definitions only)
     """
@@ -51,7 +51,7 @@ def sumstats_to_vcf(sumstats_file, vcf_file, chr_col, pos_col, ea_col, ref_col,
     df = pd.read_csv(sumstats_file, sep='\t', low_memory=False)
     
     # Check required columns
-    required_cols = [chr_col, pos_col, ea_col, ref_col]
+    required_cols = [chr_col, pos_col, ea_col, non_ea_col]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
@@ -154,9 +154,9 @@ def sumstats_to_vcf(sumstats_file, vcf_file, chr_col, pos_col, ea_col, ref_col,
         
         # Create variant IDs in chr:pos:ref:alt format
         vcf_df['ID'] = (df[chr_col].astype(str) + ':' + df[pos_col].astype(str) + ':' + 
-                       df[ref_col].astype(str).str.upper() + ':' + df[ea_col].astype(str).str.upper())
+                       df[non_ea_col].astype(str).str.upper() + ':' + df[ea_col].astype(str).str.upper())
         
-        vcf_df['REF'] = df[ref_col].astype(str).str.upper()
+        vcf_df['REF'] = df[non_ea_col].astype(str).str.upper()
         vcf_df['ALT'] = df[ea_col].astype(str).str.upper()
         vcf_df['QUAL'] = '.'
         vcf_df['FILTER'] = '.'
@@ -310,7 +310,7 @@ def parse_lifted_vcf(lifted_vcf, rejected_vcf):
 
 
 def update_sumstats(input_file, output_file, unmatched_file, lifted_info, rejected_ids,
-                    chr_col, pos_col, ea_col, ref_col, effect_cols, eaf_cols=None, add_chr_prefix=False):
+                    chr_col, pos_col, ea_col, non_ea_col, effect_cols, eaf_cols=None, add_chr_prefix=False):
     """
     Update summary statistics with lifted coordinates and flip effects if needed
     
@@ -323,7 +323,7 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
         chr_col: Chromosome column name
         pos_col: Position column name
         ea_col: Effect allele column name
-        ref_col: Reference allele column name
+        non_ea_col: Non-effect allele column name
         effect_cols: List of effect columns to flip (e.g., Z, BETA)
         eaf_cols: List of effect allele frequency columns to flip (e.g., EAF, EAF_UKB)
         add_chr_prefix: Whether chr prefix was added during conversion
@@ -356,7 +356,7 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     
     # Create variant IDs for matching using chr:pos:ref:alt format (with uppercase alleles)
     df['_variant_id'] = (df['_chr_clean'] + ':' + df[pos_col].astype(str) + ':' + 
-                        df[ref_col].astype(str).str.upper() + ':' + df[ea_col].astype(str).str.upper())
+                        df[non_ea_col].astype(str).str.upper() + ':' + df[ea_col].astype(str).str.upper())
     
     # Add status columns
     df['LIFTOVER_STATUS'] = 'unknown'
@@ -367,9 +367,9 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     df['LIFTED_POS'] = pd.to_numeric(df[pos_col], errors='coerce')
     # Add lifted allele columns (keep original alleles unchanged)
     ea_lifted_col = f'{ea_col}_lifted'
-    ref_lifted_col = f'{ref_col}_lifted'
+    non_ea_lifted_col = f'{non_ea_col}_lifted'
     df[ea_lifted_col] = ''
-    df[ref_lifted_col] = ''
+    df[non_ea_lifted_col] = ''
     df['AMBIGUOUS'] = False
     
     # Vectorized update using map operations
@@ -385,7 +385,7 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     df.loc[lifted_mask, 'STRAND_FLIP'] = df.loc[lifted_mask, '_variant_id'].map(lambda x: lifted_info[x]['flip']).astype(bool)
     
     # Store lifted alleles in new columns (keep original alleles unchanged)
-    df.loc[lifted_mask, ref_lifted_col] = df.loc[lifted_mask, '_variant_id'].map(lambda x: lifted_info[x]['ref'])
+    df.loc[lifted_mask, non_ea_lifted_col] = df.loc[lifted_mask, '_variant_id'].map(lambda x: lifted_info[x]['ref'])
     df.loc[lifted_mask, ea_lifted_col] = df.loc[lifted_mask, '_variant_id'].map(lambda x: lifted_info[x]['alt'])
     
     # Get effect_flipped status for each variant
@@ -409,9 +409,9 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     # Apply AMBIGUOUS flag for lifted variants
     for idx in df[lifted_mask].index:
         orig_a1 = df.at[idx, ea_col]
-        orig_a2 = df.at[idx, ref_col]
+        orig_a2 = df.at[idx, non_ea_col]
         lift_a1 = df.at[idx, ea_lifted_col]
-        lift_a2 = df.at[idx, ref_lifted_col]
+        lift_a2 = df.at[idx, non_ea_lifted_col]
         
         is_palindrome = is_palindromic(orig_a1, orig_a2)
         changed = alleles_changed(orig_a1, orig_a2, lift_a1, lift_a2)
@@ -424,8 +424,8 @@ def update_sumstats(input_file, output_file, unmatched_file, lifted_info, reject
     if flip_mask.any():
         # Swap A1 and A2 columns to keep A1 as effect allele
         temp_ea = df.loc[flip_mask, ea_col].copy()
-        df.loc[flip_mask, ea_col] = df.loc[flip_mask, ref_col]
-        df.loc[flip_mask, ref_col] = temp_ea
+        df.loc[flip_mask, ea_col] = df.loc[flip_mask, non_ea_col]
+        df.loc[flip_mask, non_ea_col] = temp_ea
         
         # Flip effect sizes (change sign)
         if effect_cols:
@@ -512,11 +512,10 @@ Example:
   %(prog)s \\
     --input sumstats.txt.gz \\
     --output sumstats.hg38.txt.gz \\
-    --unmatched sumstats.unmatched.txt.gz \\
     --chr-col CHR \\
     --pos-col POS \\
     --ea-col A1 \\
-    --ref-col A2 \\
+    --non-ea-col A2 \\
     --effect-col Z \\
     --eaf-col EAF_UKB \\
     --source-fasta hg19.fa.gz \\
@@ -525,6 +524,7 @@ Example:
 
 Note: This version does NOT normalize REF alleles before liftover.
       Your input data should have correct REF alleles matching the source reference genome.
+      Unmatched variants will be saved to <output>.unmatched.txt (or .txt.gz if output is compressed).
         '''
     )
     
@@ -532,8 +532,6 @@ Note: This version does NOT normalize REF alleles before liftover.
                         help='Input summary statistics file (txt or txt.gz)')
     parser.add_argument('-o', '--output', required=True,
                         help='Output lifted summary statistics file')
-    parser.add_argument('-u', '--unmatched', required=True,
-                        help='Output file for unmatched variants')
     
     parser.add_argument('--chr-col', required=True,
                         help='Chromosome column name')
@@ -541,8 +539,8 @@ Note: This version does NOT normalize REF alleles before liftover.
                         help='Position column name')
     parser.add_argument('--ea-col', required=True,
                         help='Effect allele column name')
-    parser.add_argument('--ref-col', required=True,
-                        help='Reference allele column name')
+    parser.add_argument('--non-ea-col', required=True,
+                        help='Non-effect allele column name')
     parser.add_argument('--effect-col', action='append',
                         help='Effect column name(s) to flip (e.g., Z, BETA). Can specify multiple times.')
     parser.add_argument('--eaf-col', action='append',
@@ -595,7 +593,7 @@ Note: This version does NOT normalize REF alleles before liftover.
         else:
             sumstats_to_vcf(
                 args.input, input_vcf,
-                args.chr_col, args.pos_col, args.ea_col, args.ref_col,
+                args.chr_col, args.pos_col, args.ea_col, args.non_ea_col,
                 args.add_chr_prefix, args.source_fasta
             )
         
@@ -615,10 +613,20 @@ Note: This version does NOT normalize REF alleles before liftover.
         gc.collect()
         
         # Step 4: Update summary statistics
+        # Auto-generate unmatched filename from output filename
+        if args.output.endswith('.txt.gz'):
+            unmatched_file = args.output.replace('.txt.gz', '.unmatched.txt.gz')
+        elif args.output.endswith('.gz'):
+            unmatched_file = args.output.replace('.gz', '.unmatched.txt.gz')
+        elif args.output.endswith('.txt'):
+            unmatched_file = args.output.replace('.txt', '.unmatched.txt')
+        else:
+            unmatched_file = args.output + '.unmatched.txt'
+        
         update_sumstats(
-            args.input, args.output, args.unmatched,
+            args.input, args.output, unmatched_file,
             lifted_info, rejected_ids,
-            args.chr_col, args.pos_col, args.ea_col, args.ref_col,
+            args.chr_col, args.pos_col, args.ea_col, args.non_ea_col,
             args.effect_col or [],
             args.eaf_col or [],
             args.add_chr_prefix
