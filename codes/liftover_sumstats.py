@@ -113,6 +113,26 @@ def sumstats_to_vcf(sumstats_file, vcf_file, chr_col, pos_col, ea_col, ref_col,
     df = df.sort_values(['_chr_sort', pos_col]).drop('_chr_sort', axis=1)
     logging.info(f"Sorted {len(df)} variants by chromosome and position")
     
+    # Validate positions against chromosome lengths from reference
+    if source_fasta:
+        logging.info(f"Validating variant positions against chromosome lengths...")
+        fai_file = source_fasta + '.fai'
+        if os.path.exists(fai_file):
+            # Read chromosome lengths
+            chr_lengths = {}
+            with open(fai_file, 'r') as fai:
+                for line in fai:
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 2:
+                        chr_lengths[parts[0]] = int(parts[1])
+            
+            # Filter out variants beyond chromosome boundaries
+            initial_count = len(df)
+            df = df[df.apply(lambda row: row[pos_col] <= chr_lengths.get(row[chr_col], float('inf')), axis=1)]
+            filtered_count = initial_count - len(df)
+            if filtered_count > 0:
+                logging.warning(f"Filtered out {filtered_count} variants with positions beyond chromosome boundaries")
+    
     # Write VCF - write uncompressed first, then compress with bcftools
     logging.info(f"Writing VCF to {vcf_file}...")
     
